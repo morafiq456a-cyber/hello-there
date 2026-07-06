@@ -15,8 +15,8 @@ export const Route = createFileRoute("/order-success")({
 
 function OrderSuccessPage() {
   const { order: orderNumber } = Route.useSearch();
-  const { orders, settings } = useStore();
-  const order = orders.find((o) => o.number === orderNumber);
+  const { lastOrder, settings } = useStore();
+  const order = lastOrder && lastOrder.number === orderNumber ? lastOrder : undefined;
 
   return (
     <StoreLayout>
