@@ -89,9 +89,9 @@ function AdminSettings() {
         <TabsContent value="general" className="space-y-4 rounded-2xl border bg-card p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2"><Label>Store Name</Label><Input value={form.storeName} onChange={(e) => set({ storeName: e.target.value })} className="mt-1" /></div>
-            <div><Label>Logo URL</Label><Input value={form.logo} onChange={(e) => set({ logo: e.target.value })} className="mt-1" placeholder="Leave empty for text logo" /></div>
-            <div><Label>Banner URL</Label><Input value={form.banner} onChange={(e) => set({ banner: e.target.value })} className="mt-1" /></div>
-            <div><Label>Favicon URL</Label><Input value={form.favicon} onChange={(e) => set({ favicon: e.target.value })} className="mt-1" /></div>
+            <div><Label>Logo</Label><div className="mt-1"><ImageUpload value={form.logo} onChange={(url) => set({ logo: url })} /></div></div>
+            <div><Label>Banner</Label><div className="mt-1"><ImageUpload value={form.banner} onChange={(url) => set({ banner: url })} /></div></div>
+            <div><Label>Favicon</Label><div className="mt-1"><ImageUpload value={form.favicon} onChange={(url) => set({ favicon: url })} /></div></div>
             <div><Label>Currency</Label><Input value={form.currency} onChange={(e) => set({ currency: e.target.value })} className="mt-1" /></div>
           </div>
         </TabsContent>
