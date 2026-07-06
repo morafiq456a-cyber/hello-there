@@ -28,8 +28,8 @@ function CartPage() {
   const shipping = subtotal - discount >= settings.freeShippingThreshold || subtotal === 0 ? 0 : settings.shippingFee;
   const total = Math.max(0, subtotal - discount + shipping);
 
-  const applyCoupon = () => {
-    const res = validateCoupon(code, subtotal);
+  const applyCoupon = async () => {
+    const res = await validateCoupon(code, subtotal);
     if (res.ok) {
       setApplied({ code: code.toUpperCase(), discount: res.discount });
       toast.success(res.message);
