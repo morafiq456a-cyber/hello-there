@@ -251,15 +251,12 @@ function ProductDialog({ product, onClose, onSave }: { product: Product; onClose
             <Textarea value={form.description} onChange={(e) => set({ description: e.target.value })} rows={3} className="mt-1" />
           </div>
           <div className="sm:col-span-2">
-            <Label>Image URLs</Label>
-            <div className="mt-1 space-y-2">
-              {form.images.map((im, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={im} onChange={(e) => set({ images: form.images.map((x, xi) => (xi === i ? e.target.value : x)) })} placeholder="https://..." />
-                  <Button variant="ghost" size="icon" onClick={() => set({ images: form.images.filter((_, xi) => xi !== i) })}><X size={15} /></Button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => set({ images: [...form.images, ""] })}>Add image</Button>
+            <Label>Product Images</Label>
+            <div className="mt-1">
+              <MultiImageUpload
+                images={form.images.filter(Boolean)}
+                onChange={(imgs) => set({ images: imgs.length ? imgs : [""] })}
+              />
             </div>
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3"><Label>Featured</Label><Switch checked={form.featured} onCheckedChange={(v) => set({ featured: v })} /></div>
