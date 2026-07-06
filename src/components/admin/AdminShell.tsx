@@ -64,7 +64,7 @@ export function AdminShell({ title, actions, children }: { title: string; action
         </nav>
         <div className="border-t p-3">
           <Button asChild variant="ghost" className="w-full justify-start gap-3"><Link to="/"><ExternalLink size={18} /> View Store</Link></Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={() => { logout(); navigate({ to: "/admin/login" }); }}>
+          <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={async () => { await logout(); navigate({ to: "/admin/login" }); }}>
             <LogOut size={18} /> Logout
           </Button>
         </div>
