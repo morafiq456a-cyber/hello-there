@@ -43,10 +43,17 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 function AdminSettings() {
   const { settings, updateSettings } = useStore();
   const [form, setForm] = useState<Settings>(settings);
+  const dirty = useRef(false);
+
+  // Sync from the server-loaded settings until the admin starts editing.
+  useEffect(() => {
+    if (!dirty.current) setForm(settings);
+  }, [settings]);
+
   const set = (patch: Partial<Settings>) => {
-    const next = { ...form, ...patch };
-    setForm(next);
-    // Live preview colors + theme
+    dirty.current = true;
+    setForm((f) => ({ ...f, ...patch }));
+    // Live preview + debounced persistence handled by the store.
     updateSettings(patch);
   };
 
