@@ -47,10 +47,10 @@ export function Header() {
             <SheetHeader>
               <SheetTitle className="text-gradient">{settings.storeName}</SheetTitle>
             </SheetHeader>
-            <form onSubmit={submitSearch} className="mt-4 flex gap-2">
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products..." />
-              <Button size="icon" type="submit"><Search size={16} /></Button>
-            </form>
+            <div className="mt-4">
+              <SearchAutocomplete onNavigate={() => setOpen(false)} />
+            </div>
+
             <nav className="mt-4 flex flex-col">
               {NAV.map((n) => (
                 <Link
