@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Shop electronics, fashion, home essentials and more at Nova Store. Cash on delivery across Egypt with fast, reliable shipping.",
       },
       { name: "author", content: "Nova Store" },
-      { property: "og:title", content: "Nova Store — Premium Online Shopping" },
+      { property: "og:title", content: "Nova Store — Premium Online Shopping in Egypt" },
       {
         property: "og:description",
         content: "Discover premium products with cash on delivery across Egypt.",
@@ -95,6 +95,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Nova Store" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Nova Store — Premium Online Shopping in Egypt" },
+      { name: "description", content: "Shop electronics, fashion, home essentials and more at Nova Store. Cash on delivery across Egypt with fast, reliable shipping." },
+      { property: "og:description", content: "Shop electronics, fashion, home essentials and more at Nova Store. Cash on delivery across Egypt with fast, reliable shipping." },
+      { name: "twitter:description", content: "Shop electronics, fashion, home essentials and more at Nova Store. Cash on delivery across Egypt with fast, reliable shipping." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c528a65f-6f66-41e0-a2e1-9ee20e6ec8e4/id-preview-7f6ee224--0644544b-a1a0-4587-b881-ec568076cce9.lovable.app-1783364568192.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c528a65f-6f66-41e0-a2e1-9ee20e6ec8e4/id-preview-7f6ee224--0644544b-a1a0-4587-b881-ec568076cce9.lovable.app-1783364568192.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
