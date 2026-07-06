@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PackageSearch, Check } from "lucide-react";
+import { PackageSearch, Check, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { StoreLayout, PageHeader } from "@/components/storefront/StoreLayout";
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,23 @@ export const Route = createFileRoute("/track-order")({
 const TIMELINE = ORDER_STATUSES.filter((s) => s !== "Cancelled");
 
 function TrackOrderPage() {
-  const { orders, settings } = useStore();
+  const { settings, trackOrder } = useStore();
   const [phone, setPhone] = useState("");
   const [number, setNumber] = useState("");
   const [result, setResult] = useState<Order | null | "none">(null);
+  const [loading, setLoading] = useState(false);
 
-  const track = (e: React.FormEvent) => {
+  const track = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = orders.find(
-      (o) => o.number.toLowerCase() === number.trim().toLowerCase() && o.customer.phone.replace(/\D/g, "").endsWith(phone.trim().replace(/\D/g, "").slice(-9)),
-    );
-    setResult(found ?? "none");
+    setLoading(true);
+    try {
+      const found = await trackOrder(number, phone);
+      setResult(found ?? "none");
+    } catch {
+      setResult("none");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const activeIndex = result && result !== "none" ? (TIMELINE as OrderStatus[]).indexOf(result.status) : -1;
@@ -51,7 +57,9 @@ function TrackOrderPage() {
             <Label htmlFor="tnum">Order Number</Label>
             <Input id="tnum" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="NV-123456" className="mt-1" required />
           </div>
-          <Button type="submit" className="w-full gap-2"><PackageSearch size={16} /> Track Order</Button>
+          <Button type="submit" className="w-full gap-2" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" size={16} /> : <PackageSearch size={16} />} Track Order
+          </Button>
         </form>
 
         {result === "none" && (
