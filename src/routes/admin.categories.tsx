@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { CategoryIcon } from "@/components/storefront/CategoryIcon";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
