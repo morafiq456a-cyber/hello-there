@@ -106,17 +106,10 @@ export function Header() {
           ))}
         </nav>
 
-        <form onSubmit={submitSearch} className="ml-auto hidden max-w-xs flex-1 md:flex">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search products..."
-              className="pl-9"
-            />
-          </div>
-        </form>
+        <div className="ml-auto hidden max-w-xs flex-1 md:block">
+          <SearchAutocomplete />
+        </div>
+
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Track order">
