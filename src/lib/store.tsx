@@ -127,10 +127,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await checkRole(data.session?.user?.id);
       setAuthChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      setTimeout(() => checkRole(session?.user?.id), 0);
-      queryClient.invalidateQueries();
+      // Only react to real identity transitions. Ignore TOKEN_REFRESHED
+      // (~hourly + on tab focus) and INITIAL_SESSION (every mount) to avoid
+      // thrashing the query cache with unnecessary refetches.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        setTimeout(() => checkRole(session?.user?.id), 0);
+        // Don't refetch protected queries against a cleared session on sign-out.
+        if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      }
     });
     return () => {
       mounted = false;
