@@ -168,6 +168,6 @@ export async function deleteOrder(id: string): Promise<void> {
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   const row = settingsToRow(patch);
   if (Object.keys(row).length === 0) return;
-  const { error } = await supabase.from("settings").update(row).eq("id", "default");
+  const { error } = await supabase.from("settings").update(row as never).eq("id", "default");
   if (error) throw new Error(error.message);
 }
