@@ -25,16 +25,9 @@ const NAV = [
 
 export function Header() {
   const { cartCount, wishlist, settings, categories } = useStore();
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate({ to: "/search", search: { q } });
-    setOpen(false);
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b glass">
