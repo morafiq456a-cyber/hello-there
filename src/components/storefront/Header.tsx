@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Heart, Menu, Search, ShoppingCart, Store, Truck } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Heart, Menu, ShoppingCart, Store, Truck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { SearchAutocomplete } from "@/components/storefront/SearchAutocomplete";
 import {
   Sheet,
   SheetContent,
