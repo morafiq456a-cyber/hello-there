@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Heart, Menu, Search, ShoppingCart, Store, Truck } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Heart, Menu, ShoppingCart, Store, Truck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { SearchAutocomplete } from "@/components/storefront/SearchAutocomplete";
 import {
   Sheet,
   SheetContent,
@@ -25,16 +25,9 @@ const NAV = [
 
 export function Header() {
   const { cartCount, wishlist, settings, categories } = useStore();
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate({ to: "/search", search: { q } });
-    setOpen(false);
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b glass">
@@ -54,10 +47,10 @@ export function Header() {
             <SheetHeader>
               <SheetTitle className="text-gradient">{settings.storeName}</SheetTitle>
             </SheetHeader>
-            <form onSubmit={submitSearch} className="mt-4 flex gap-2">
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products..." />
-              <Button size="icon" type="submit"><Search size={16} /></Button>
-            </form>
+            <div className="mt-4">
+              <SearchAutocomplete onNavigate={() => setOpen(false)} />
+            </div>
+
             <nav className="mt-4 flex flex-col">
               {NAV.map((n) => (
                 <Link
@@ -113,17 +106,10 @@ export function Header() {
           ))}
         </nav>
 
-        <form onSubmit={submitSearch} className="ml-auto hidden max-w-xs flex-1 md:flex">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search products..."
-              className="pl-9"
-            />
-          </div>
-        </form>
+        <div className="ml-auto hidden max-w-xs flex-1 md:block">
+          <SearchAutocomplete />
+        </div>
+
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Track order">
