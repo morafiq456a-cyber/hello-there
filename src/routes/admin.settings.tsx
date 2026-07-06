@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Palette, RotateCcw, Save, Store } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
