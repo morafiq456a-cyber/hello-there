@@ -8,13 +8,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import * as api from "./api";
 import {
-  defaultSettings,
-  seedBanners,
-  seedCategories,
-  seedCoupons,
-  seedProducts,
-} from "./seed";
+  placeOrderFn,
+  trackOrderFn,
+  validateCouponFn,
+  type CouponResult,
+  type PlaceOrderInput,
+} from "./orders.functions";
+import { defaultSettings } from "./seed";
 import type {
   Banner,
   CartItem,
@@ -27,47 +32,32 @@ import type {
   Settings,
 } from "./types";
 
-const KEY = "nova_store_v1";
+const LOCAL_KEY = "nova_store_local_v2";
 
-type PersistShape = {
-  products: Product[];
-  categories: Category[];
-  orders: Order[];
-  coupons: Coupon[];
-  banners: Banner[];
-  settings: Settings;
+type LocalState = {
   cart: CartItem[];
   wishlist: string[];
   recentlyViewed: string[];
-  admin: boolean;
+  lastOrder: Order | null;
 };
 
-const defaultState: PersistShape = {
-  products: seedProducts,
-  categories: seedCategories,
-  orders: [],
-  coupons: seedCoupons,
-  banners: seedBanners,
-  settings: defaultSettings,
-  cart: [],
-  wishlist: [],
-  recentlyViewed: [],
-  admin: false,
-};
+const defaultLocal: LocalState = { cart: [], wishlist: [], recentlyViewed: [], lastOrder: null };
 
 type StoreContextValue = {
   hydrated: boolean;
+  loading: boolean;
   products: Product[];
   categories: Category[];
   orders: Order[];
   coupons: Coupon[];
   banners: Banner[];
   settings: Settings;
+  customers: Customer[];
   cart: CartItem[];
   wishlist: string[];
   recentlyViewed: string[];
+  lastOrder: Order | null;
   admin: boolean;
-  customers: Customer[];
   // cart
   addToCart: (productId: string, qty?: number) => void;
   removeFromCart: (productId: string) => void;
@@ -80,69 +70,143 @@ type StoreContextValue = {
   // viewed
   addRecentlyViewed: (productId: string) => void;
   // products/categories admin
-  saveProduct: (p: Product) => void;
-  deleteProduct: (id: string) => void;
-  reorderProducts: (ids: string[]) => void;
-  saveCategory: (c: Category) => void;
-  deleteCategory: (id: string) => void;
-  reorderCategories: (ids: string[]) => void;
+  saveProduct: (p: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  reorderProducts: (ids: string[]) => Promise<void>;
+  saveCategory: (c: Category) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  reorderCategories: (ids: string[]) => Promise<void>;
   // coupons
-  saveCoupon: (c: Coupon) => void;
-  deleteCoupon: (id: string) => void;
-  validateCoupon: (code: string, subtotal: number) => { ok: boolean; message: string; discount: number; coupon?: Coupon };
+  saveCoupon: (c: Coupon) => Promise<void>;
+  deleteCoupon: (id: string) => Promise<void>;
+  validateCoupon: (code: string, subtotal: number) => Promise<CouponResult>;
   // banners
-  saveBanner: (b: Banner) => void;
-  deleteBanner: (id: string) => void;
+  saveBanner: (b: Banner) => Promise<void>;
+  deleteBanner: (id: string) => Promise<void>;
   // orders
-  placeOrder: (order: Omit<Order, "id" | "number" | "createdAt" | "status">) => Order;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
-  deleteOrder: (id: string) => void;
+  placeOrder: (input: PlaceOrderInput) => Promise<Order>;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
+  trackOrder: (number: string, phone: string) => Promise<Order | null>;
   // settings
   updateSettings: (s: Partial<Settings>) => void;
   // admin
-  login: (password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PersistShape>(defaultState);
-  const [hydrated, setHydrated] = useState(false);
-  const firstWrite = useRef(true);
+  const queryClient = useQueryClient();
+
+  // ---------- Auth ----------
+  const [, setSession] = useState<Session | null>(null);
+  const [admin, setAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const checkRole = useCallback(async (uid: string | undefined) => {
+    if (!uid) {
+      setAdmin(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", uid)
+      .eq("role", "admin")
+      .maybeSingle();
+    setAdmin(!!data);
+  }, []);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<PersistShape>;
-        setState((prev) => ({ ...prev, ...parsed }));
+    let mounted = true;
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      await checkRole(data.session?.user?.id);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setTimeout(() => checkRole(session?.user?.id), 0);
+      queryClient.invalidateQueries();
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [checkRole, queryClient]);
+
+  // ---------- Server-backed data ----------
+  const productsQ = useQuery({ queryKey: ["products"], queryFn: api.fetchProducts });
+  const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: api.fetchCategories });
+  const bannersQ = useQuery({ queryKey: ["banners"], queryFn: api.fetchBanners });
+  const settingsQ = useQuery({ queryKey: ["settings"], queryFn: api.fetchSettings });
+  const couponsQ = useQuery({ queryKey: ["coupons"], queryFn: api.fetchCoupons, enabled: admin });
+  const ordersQ = useQuery({ queryKey: ["orders"], queryFn: api.fetchOrders, enabled: admin });
+  const customersQ = useQuery({ queryKey: ["customers"], queryFn: api.fetchCustomers, enabled: admin });
+
+  // ---------- Settings (local live-preview + debounced persist) ----------
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const pendingPatch = useRef<Partial<Settings>>({});
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (settingsQ.data) setSettings(settingsQ.data);
+  }, [settingsQ.data]);
+
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
+    setSettings((prev) => ({ ...prev, ...patch }));
+    pendingPatch.current = { ...pendingPatch.current, ...patch };
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      const p = pendingPatch.current;
+      pendingPatch.current = {};
+      try {
+        await api.updateSettings(p);
+      } catch {
+        /* silent; RLS blocks non-admins */
       }
+    }, 600);
+  }, []);
+
+  // ---------- Local state (cart / wishlist / recently viewed) ----------
+  const [local, setLocal] = useState<LocalState>(defaultLocal);
+  const [localHydrated, setLocalHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) setLocal({ ...defaultLocal, ...(JSON.parse(raw) as Partial<LocalState>) });
     } catch {
       /* ignore */
     }
-    setHydrated(true);
+    setLocalHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    if (firstWrite.current) {
-      firstWrite.current = false;
-    }
+    if (!localHydrated) return;
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(local));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated]);
+  }, [local, localHydrated]);
 
-  const patch = useCallback((p: Partial<PersistShape>) => {
-    setState((prev) => ({ ...prev, ...p }));
-  }, []);
+  // ---------- Derived data ----------
+  const products = productsQ.data ?? [];
+  const categories = categoriesQ.data ?? [];
+  const banners = bannersQ.data ?? [];
+  const coupons = couponsQ.data ?? [];
+  const orders = ordersQ.data ?? [];
+  const customers = customersQ.data ?? [];
+
+  const cartCount = useMemo(() => local.cart.reduce((s, c) => s + c.quantity, 0), [local.cart]);
 
   // ---------- Cart ----------
   const addToCart = useCallback((productId: string, qty = 1) => {
-    setState((prev) => {
+    setLocal((prev) => {
       const existing = prev.cart.find((c) => c.productId === productId);
       const cart = existing
         ? prev.cart.map((c) => (c.productId === productId ? { ...c, quantity: c.quantity + qty } : c))
@@ -152,23 +216,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
-    setState((prev) => ({ ...prev, cart: prev.cart.filter((c) => c.productId !== productId) }));
+    setLocal((prev) => ({ ...prev, cart: prev.cart.filter((c) => c.productId !== productId) }));
   }, []);
 
   const setCartQty = useCallback((productId: string, qty: number) => {
-    setState((prev) => ({
+    setLocal((prev) => ({
       ...prev,
-      cart: qty <= 0
-        ? prev.cart.filter((c) => c.productId !== productId)
-        : prev.cart.map((c) => (c.productId === productId ? { ...c, quantity: qty } : c)),
+      cart:
+        qty <= 0
+          ? prev.cart.filter((c) => c.productId !== productId)
+          : prev.cart.map((c) => (c.productId === productId ? { ...c, quantity: qty } : c)),
     }));
   }, []);
 
-  const clearCart = useCallback(() => setState((prev) => ({ ...prev, cart: [] })), []);
+  const clearCart = useCallback(() => setLocal((prev) => ({ ...prev, cart: [] })), []);
 
   // ---------- Wishlist ----------
   const toggleWishlist = useCallback((productId: string) => {
-    setState((prev) => ({
+    setLocal((prev) => ({
       ...prev,
       wishlist: prev.wishlist.includes(productId)
         ? prev.wishlist.filter((id) => id !== productId)
@@ -177,188 +242,117 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addRecentlyViewed = useCallback((productId: string) => {
-    setState((prev) => ({
+    setLocal((prev) => ({
       ...prev,
       recentlyViewed: [productId, ...prev.recentlyViewed.filter((id) => id !== productId)].slice(0, 8),
     }));
   }, []);
 
-  // ---------- Products ----------
-  const saveProduct = useCallback((p: Product) => {
-    setState((prev) => {
-      const exists = prev.products.some((x) => x.id === p.id);
-      return {
-        ...prev,
-        products: exists ? prev.products.map((x) => (x.id === p.id ? p : x)) : [...prev.products, p],
-      };
-    });
-  }, []);
-
-  const deleteProduct = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, products: prev.products.filter((p) => p.id !== id) }));
-  }, []);
-
-  const reorderProducts = useCallback((ids: string[]) => {
-    setState((prev) => ({
-      ...prev,
-      products: prev.products
-        .map((p) => ({ ...p, sort: ids.indexOf(p.id) === -1 ? p.sort : ids.indexOf(p.id) }))
-        .sort((a, b) => a.sort - b.sort),
-    }));
-  }, []);
-
-  // ---------- Categories ----------
-  const saveCategory = useCallback((c: Category) => {
-    setState((prev) => {
-      const exists = prev.categories.some((x) => x.id === c.id);
-      return {
-        ...prev,
-        categories: exists ? prev.categories.map((x) => (x.id === c.id ? c : x)) : [...prev.categories, c],
-      };
-    });
-  }, []);
-
-  const deleteCategory = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, categories: prev.categories.filter((c) => c.id !== id) }));
-  }, []);
-
-  const reorderCategories = useCallback((ids: string[]) => {
-    setState((prev) => ({
-      ...prev,
-      categories: prev.categories
-        .map((c) => ({ ...c, sort: ids.indexOf(c.id) === -1 ? c.sort : ids.indexOf(c.id) }))
-        .sort((a, b) => a.sort - b.sort),
-    }));
-  }, []);
-
-  // ---------- Coupons ----------
-  const saveCoupon = useCallback((c: Coupon) => {
-    setState((prev) => {
-      const exists = prev.coupons.some((x) => x.id === c.id);
-      return {
-        ...prev,
-        coupons: exists ? prev.coupons.map((x) => (x.id === c.id ? c : x)) : [...prev.coupons, c],
-      };
-    });
-  }, []);
-
-  const deleteCoupon = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, coupons: prev.coupons.filter((c) => c.id !== id) }));
-  }, []);
-
-  const validateCoupon = useCallback(
-    (code: string, subtotal: number) => {
-      const coupon = state.coupons.find((c) => c.code.toLowerCase() === code.trim().toLowerCase());
-      if (!coupon) return { ok: false, message: "Invalid coupon code", discount: 0 };
-      if (!coupon.active) return { ok: false, message: "This coupon is no longer active", discount: 0 };
-      if (coupon.minOrder && subtotal < coupon.minOrder)
-        return { ok: false, message: `Minimum order of ${coupon.minOrder} required`, discount: 0 };
-      const discount = coupon.type === "percent" ? (subtotal * coupon.value) / 100 : coupon.value;
-      return { ok: true, message: `Coupon applied: -${Math.round(discount)}`, discount, coupon };
-    },
-    [state.coupons],
+  // ---------- Admin mutations ----------
+  const invalidate = useCallback(
+    (key: string) => queryClient.invalidateQueries({ queryKey: [key] }),
+    [queryClient],
   );
 
-  // ---------- Banners ----------
-  const saveBanner = useCallback((b: Banner) => {
-    setState((prev) => {
-      const exists = prev.banners.some((x) => x.id === b.id);
-      return {
-        ...prev,
-        banners: exists ? prev.banners.map((x) => (x.id === b.id ? b : x)) : [...prev.banners, b],
-      };
-    });
-  }, []);
+  const saveProduct = useCallback(async (p: Product) => { await api.upsertProduct(p); await invalidate("products"); }, [invalidate]);
+  const deleteProduct = useCallback(async (id: string) => { await api.deleteProduct(id); await invalidate("products"); }, [invalidate]);
+  const reorderProducts = useCallback(async (ids: string[]) => { await api.reorderProducts(ids); await invalidate("products"); }, [invalidate]);
+  const saveCategory = useCallback(async (c: Category) => { await api.upsertCategory(c); await invalidate("categories"); }, [invalidate]);
+  const deleteCategory = useCallback(async (id: string) => { await api.deleteCategory(id); await invalidate("categories"); await invalidate("products"); }, [invalidate]);
+  const reorderCategories = useCallback(async (ids: string[]) => { await api.reorderCategories(ids); await invalidate("categories"); }, [invalidate]);
+  const saveCoupon = useCallback(async (c: Coupon) => { await api.upsertCoupon(c); await invalidate("coupons"); }, [invalidate]);
+  const deleteCoupon = useCallback(async (id: string) => { await api.deleteCoupon(id); await invalidate("coupons"); }, [invalidate]);
+  const saveBanner = useCallback(async (b: Banner) => { await api.upsertBanner(b); await invalidate("banners"); }, [invalidate]);
+  const deleteBanner = useCallback(async (id: string) => { await api.deleteBanner(id); await invalidate("banners"); }, [invalidate]);
+  const updateOrderStatus = useCallback(async (id: string, status: OrderStatus) => {
+    await api.updateOrderStatus(id, status);
+    await invalidate("orders");
+    await invalidate("customers");
+  }, [invalidate]);
+  const deleteOrder = useCallback(async (id: string) => {
+    await api.deleteOrder(id);
+    await invalidate("orders");
+    await invalidate("customers");
+  }, [invalidate]);
 
-  const deleteBanner = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, banners: prev.banners.filter((b) => b.id !== id) }));
-  }, []);
-
-  // ---------- Orders ----------
-  const placeOrder = useCallback(
-    (order: Omit<Order, "id" | "number" | "createdAt" | "status">) => {
-      const id = `o${Date.now()}`;
-      const number = `NV-${Math.floor(100000 + Math.random() * 900000)}`;
-      const full: Order = { ...order, id, number, createdAt: new Date().toISOString(), status: "New" };
-      setState((prev) => ({
-        ...prev,
-        orders: [full, ...prev.orders],
-        cart: [],
-        products: prev.products.map((p) => {
-          const item = order.items.find((i) => i.productId === p.id);
-          return item ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p;
-        }),
-      }));
-      return full;
-    },
+  // ---------- Coupons / Orders (public server fns) ----------
+  const validateCoupon = useCallback(
+    (code: string, subtotal: number) => validateCouponFn({ data: { code, subtotal } }),
     [],
   );
 
-  const updateOrderStatus = useCallback((id: string, status: OrderStatus) => {
-    setState((prev) => ({
-      ...prev,
-      orders: prev.orders.map((o) => (o.id === id ? { ...o, status } : o)),
-    }));
-  }, []);
+  const placeOrder = useCallback(
+    async (input: PlaceOrderInput) => {
+      const order = await placeOrderFn({ data: input });
+      setLocal((prev) => ({ ...prev, cart: [], lastOrder: order }));
+      await Promise.all([invalidate("products"), invalidate("orders"), invalidate("customers")]);
+      return order;
+    },
+    [invalidate],
+  );
 
-  const deleteOrder = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, orders: prev.orders.filter((o) => o.id !== id) }));
-  }, []);
+  const trackOrder = useCallback(
+    (number: string, phone: string) => trackOrderFn({ data: { number, phone } }),
+    [],
+  );
 
-  // ---------- Settings ----------
-  const updateSettings = useCallback((s: Partial<Settings>) => {
-    setState((prev) => ({ ...prev, settings: { ...prev.settings, ...s } }));
-  }, []);
-
-  // ---------- Admin ----------
-  const login = useCallback((password: string) => {
-    if (password === "admin123") {
-      patch({ admin: true });
-      return true;
-    }
-    return false;
-  }, [patch]);
-
-  const logout = useCallback(() => patch({ admin: false }), [patch]);
-
-  // ---------- Derived ----------
-  const cartCount = useMemo(() => state.cart.reduce((s, c) => s + c.quantity, 0), [state.cart]);
-
-  const customers = useMemo<Customer[]>(() => {
-    const map = new Map<string, Customer>();
-    for (const o of state.orders) {
-      const key = o.customer.phone;
-      const existing = map.get(key);
-      if (existing) {
-        existing.ordersCount += 1;
-        existing.totalSpent += o.total;
-        if (o.createdAt > existing.lastOrderAt) existing.lastOrderAt = o.createdAt;
-      } else {
-        map.set(key, {
-          id: key,
-          fullName: o.customer.fullName,
-          phone: o.customer.phone,
-          governorate: o.customer.governorate,
-          ordersCount: 1,
-          totalSpent: o.total,
-          lastOrderAt: o.createdAt,
-        });
+  // ---------- Admin auth ----------
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error || !data.user) return false;
+      const { data: role } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!role) {
+        await supabase.auth.signOut();
+        setAdmin(false);
+        return false;
       }
-    }
-    return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [state.orders]);
+      setAdmin(true);
+      queryClient.invalidateQueries();
+      return true;
+    },
+    [queryClient],
+  );
+
+  const logout = useCallback(async () => {
+    await queryClient.cancelQueries();
+    await supabase.auth.signOut();
+    setAdmin(false);
+    queryClient.removeQueries({ queryKey: ["orders"] });
+    queryClient.removeQueries({ queryKey: ["customers"] });
+    queryClient.removeQueries({ queryKey: ["coupons"] });
+  }, [queryClient]);
+
+  const loading = productsQ.isLoading || categoriesQ.isLoading || settingsQ.isLoading;
+  const hydrated = authChecked && localHydrated && !settingsQ.isLoading && !productsQ.isLoading;
 
   const value: StoreContextValue = {
     hydrated,
-    ...state,
+    loading,
+    products,
+    categories,
+    orders,
+    coupons,
+    banners,
+    settings,
     customers,
+    cart: local.cart,
+    wishlist: local.wishlist,
+    recentlyViewed: local.recentlyViewed,
+    lastOrder: local.lastOrder,
+    admin,
     addToCart,
     removeFromCart,
     setCartQty,
     clearCart,
     cartCount,
     toggleWishlist,
-    inWishlist: (id) => state.wishlist.includes(id),
+    inWishlist: (id) => local.wishlist.includes(id),
     addRecentlyViewed,
     saveProduct,
     deleteProduct,
@@ -374,6 +368,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     placeOrder,
     updateOrderStatus,
     deleteOrder,
+    trackOrder,
     updateSettings,
     login,
     logout,

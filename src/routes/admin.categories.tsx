@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { CategoryIcon } from "@/components/storefront/CategoryIcon";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -153,7 +154,7 @@ function CategoryForm({ category, onChange }: { category: Category; onChange: (c
     <div className="space-y-4">
       <div><Label>Name</Label><Input value={category.name} onChange={(e) => set({ name: e.target.value })} className="mt-1" /></div>
       <div><Label>Description</Label><Textarea value={category.description ?? ""} onChange={(e) => set({ description: e.target.value })} rows={2} className="mt-1" /></div>
-      <div><Label>Image URL</Label><Input value={category.image} onChange={(e) => set({ image: e.target.value })} className="mt-1" /></div>
+      <div><Label>Image</Label><div className="mt-1"><ImageUpload value={category.image} onChange={(url) => set({ image: url })} /></div></div>
       <div>
         <Label>Icon</Label>
         <Select value={category.icon} onValueChange={(v) => set({ icon: v })}>

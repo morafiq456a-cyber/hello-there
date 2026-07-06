@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Banknote, ShoppingBag } from "lucide-react";
+import { Banknote, Loader2, ShoppingBag, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import { StoreLayout, PageHeader } from "@/components/storefront/StoreLayout";
@@ -41,7 +41,9 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const navigate = useNavigate();
   const { cart, products, settings, validateCoupon, placeOrder } = useStore();
-  const [couponCode] = useState("");
+  const [code, setCode] = useState("");
+  const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const {
     register,
@@ -57,32 +59,42 @@ function CheckoutPage() {
   );
 
   const subtotal = lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
-  const couponRes = validateCoupon(couponCode, subtotal);
-  const discount = couponRes.ok ? couponRes.discount : 0;
+  const discount = applied?.discount ?? 0;
   const shipping = subtotal - discount >= settings.freeShippingThreshold ? 0 : settings.shippingFee;
   const total = Math.max(0, subtotal - discount + shipping);
 
-  const onSubmit = (values: FormValues) => {
+  const applyCoupon = async () => {
+    setApplying(true);
+    try {
+      const res = await validateCoupon(code, subtotal);
+      if (res.ok) {
+        setApplied({ code: res.code ?? code.toUpperCase(), discount: res.discount });
+        toast.success(res.message);
+      } else {
+        setApplied(null);
+        toast.error(res.message);
+      }
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const onSubmit = async (values: FormValues) => {
     if (lines.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
-    const order = placeOrder({
-      customer: values,
-      items: lines.map((l) => ({
-        productId: l.product.id,
-        name: l.product.name,
-        image: l.product.images[0],
-        price: l.product.price,
-        quantity: l.quantity,
-      })),
-      subtotal,
-      shipping,
-      discount,
-      total,
-    });
-    toast.success("Order placed successfully!");
-    navigate({ to: "/order-success", search: { order: order.number } });
+    try {
+      const order = await placeOrder({
+        customer: values,
+        items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
+        couponCode: applied?.code ?? null,
+      });
+      toast.success("Order placed successfully!");
+      navigate({ to: "/order-success", search: { order: order.number } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not place order. Please try again.");
+    }
   };
 
   if (lines.length === 0) {
@@ -169,13 +181,24 @@ function CheckoutPage() {
               </div>
             ))}
           </div>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
+              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Coupon code" className="pl-9" />
+            </div>
+            <Button type="button" variant="outline" onClick={applyCoupon} disabled={applying || !code}>
+              {applying ? <Loader2 className="animate-spin" size={15} /> : "Apply"}
+            </Button>
+          </div>
           <div className="space-y-2 border-t pt-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatCurrency(subtotal, settings.currency)}</span></div>
-            {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(discount, settings.currency)}</span></div>}
+            {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount ({applied?.code})</span><span>-{formatCurrency(discount, settings.currency)}</span></div>}
             <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : formatCurrency(shipping, settings.currency)}</span></div>
             <div className="flex justify-between border-t pt-2 text-base font-bold"><span>Total</span><span className="text-brand">{formatCurrency(total, settings.currency)}</span></div>
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>Place Order</Button>
+          <Button type="submit" size="lg" className="w-full gap-2" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : "Place Order"}
+          </Button>
         </div>
       </form>
     </StoreLayout>
