@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { Order } from "./types";
+import { getRequest } from "@tanstack/react-start/server";
+import type { Order, PaymentMethod } from "./types";
 
 const itemSchema = z.object({
   productId: z.string().uuid(),
@@ -19,6 +20,8 @@ const placeOrderSchema = z.object({
   }),
   items: z.array(itemSchema).min(1).max(100),
   couponCode: z.string().trim().max(40).optional().nullable(),
+  paymentMethod: z.enum(["cod", "card", "wallet", "bank"]).default("cod"),
+  paymentReference: z.string().trim().max(80).optional().nullable(),
 });
 
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
@@ -31,6 +34,19 @@ export const placeOrderFn = createServerFn({ method: "POST" })
   .inputValidator((data: PlaceOrderInput) => placeOrderSchema.parse(data))
   .handler(async ({ data }): Promise<Order> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Link the order to the signed-in customer when a valid bearer token is present.
+    let userId: string | null = null;
+    try {
+      const authHeader = getRequest()?.headers.get("authorization");
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      if (token && token.split(".").length === 3) {
+        const { data: userRes } = await supabaseAdmin.auth.getUser(token);
+        userId = userRes?.user?.id ?? null;
+      }
+    } catch {
+      userId = null;
+    }
 
     const ids = [...new Set(data.items.map((i) => i.productId))];
     const { data: products, error: pErr } = await supabaseAdmin
@@ -109,6 +125,10 @@ export const placeOrderFn = createServerFn({ method: "POST" })
           coupon_code: couponCode,
           total,
           status: "New",
+          user_id: userId,
+          payment_method: data.paymentMethod,
+          payment_status: data.paymentMethod === "cod" ? "unpaid" : "pending",
+          payment_reference: data.paymentReference ?? null,
         })
         .select("id,number,created_at")
         .single();
@@ -165,6 +185,9 @@ export const placeOrderFn = createServerFn({ method: "POST" })
       couponCode: couponCode ?? undefined,
       total,
       status: "New",
+      paymentMethod: data.paymentMethod as PaymentMethod,
+      paymentStatus: data.paymentMethod === "cod" ? "unpaid" : "pending",
+      paymentReference: data.paymentReference ?? undefined,
       createdAt: orderRow.created_at,
     };
   });
@@ -246,6 +269,9 @@ export const trackOrderFn = createServerFn({ method: "POST" })
       couponCode: match.coupon_code ?? undefined,
       total: Number(match.total),
       status: match.status,
+      paymentMethod: match.payment_method,
+      paymentStatus: match.payment_status,
+      paymentReference: match.payment_reference ?? undefined,
       createdAt: match.created_at,
     };
   });
