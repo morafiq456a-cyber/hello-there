@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -225,12 +225,16 @@ export type Database = {
           landmark: string | null
           notes: string | null
           number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_reference: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
           phone: string
           shipping: number
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           address: string
@@ -244,12 +248,16 @@ export type Database = {
           landmark?: string | null
           notes?: string | null
           number: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           phone: string
           shipping?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           address?: string
@@ -263,12 +271,16 @@ export type Database = {
           landmark?: string | null
           notes?: string | null
           number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           phone?: string
           shipping?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -358,10 +370,44 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          full_name: string
+          governorate: string
+          id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          city?: string
+          created_at?: string
+          full_name?: string
+          governorate?: string
+          id: string
+          phone?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          full_name?: string
+          governorate?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           address: string
           background_color: string
+          bank_details: string
           banner: string
           business_hours: string
           button_color: string
@@ -376,6 +422,10 @@ export type Database = {
           id: string
           instagram: string
           logo: string
+          pay_bank_enabled: boolean
+          pay_card_enabled: boolean
+          pay_cod_enabled: boolean
+          pay_wallet_enabled: boolean
           phone: string
           primary_color: string
           secondary_color: string
@@ -386,11 +436,13 @@ export type Database = {
           text_color: string
           tiktok: string
           updated_at: string
+          wallet_numbers: string
           whatsapp: string
         }
         Insert: {
           address?: string
           background_color?: string
+          bank_details?: string
           banner?: string
           business_hours?: string
           button_color?: string
@@ -405,6 +457,10 @@ export type Database = {
           id?: string
           instagram?: string
           logo?: string
+          pay_bank_enabled?: boolean
+          pay_card_enabled?: boolean
+          pay_cod_enabled?: boolean
+          pay_wallet_enabled?: boolean
           phone?: string
           primary_color?: string
           secondary_color?: string
@@ -415,11 +471,13 @@ export type Database = {
           text_color?: string
           tiktok?: string
           updated_at?: string
+          wallet_numbers?: string
           whatsapp?: string
         }
         Update: {
           address?: string
           background_color?: string
+          bank_details?: string
           banner?: string
           business_hours?: string
           button_color?: string
@@ -434,6 +492,10 @@ export type Database = {
           id?: string
           instagram?: string
           logo?: string
+          pay_bank_enabled?: boolean
+          pay_card_enabled?: boolean
+          pay_cod_enabled?: boolean
+          pay_wallet_enabled?: boolean
           phone?: string
           primary_color?: string
           secondary_color?: string
@@ -444,6 +506,7 @@ export type Database = {
           text_color?: string
           tiktok?: string
           updated_at?: string
+          wallet_numbers?: string
           whatsapp?: string
         }
         Relationships: []
@@ -511,6 +574,8 @@ export type Database = {
         | "Out for Delivery"
         | "Delivered"
         | "Cancelled"
+      payment_method: "cod" | "card" | "wallet" | "bank"
+      payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -648,6 +713,8 @@ export const Constants = {
         "Delivered",
         "Cancelled",
       ],
+      payment_method: ["cod", "card", "wallet", "bank"],
+      payment_status: ["unpaid", "pending", "paid", "failed", "refunded"],
     },
   },
 } as const

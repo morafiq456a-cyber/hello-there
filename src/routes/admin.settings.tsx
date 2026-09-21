@@ -84,6 +84,7 @@ function AdminSettings() {
           <TabsTrigger value="appearance"><Palette size={15} className="mr-1.5" /> Appearance</TabsTrigger>
           <TabsTrigger value="contact">Contact & Social</TabsTrigger>
           <TabsTrigger value="shipping">Shipping & SEO</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 rounded-2xl border bg-card p-6">
@@ -137,6 +138,20 @@ function AdminSettings() {
             <div><Label>Free Shipping Threshold</Label><Input type="number" value={form.freeShippingThreshold} onChange={(e) => set({ freeShippingThreshold: +e.target.value })} className="mt-1" /></div>
             <div className="sm:col-span-2"><Label>SEO Title</Label><Input value={form.seoTitle} onChange={(e) => set({ seoTitle: e.target.value })} className="mt-1" /></div>
             <div className="sm:col-span-2"><Label>SEO Description</Label><Textarea value={form.seoDescription} onChange={(e) => set({ seoDescription: e.target.value })} rows={3} className="mt-1" /></div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-5 rounded-2xl border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Enabled methods appear instantly at checkout.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-between rounded-lg border p-3"><Label>Cash on Delivery</Label><Switch checked={form.payCodEnabled} onCheckedChange={(v) => set({ payCodEnabled: v })} /></div>
+            <div className="flex items-center justify-between rounded-lg border p-3"><Label>Credit / Debit Card</Label><Switch checked={form.payCardEnabled} onCheckedChange={(v) => set({ payCardEnabled: v })} /></div>
+            <div className="flex items-center justify-between rounded-lg border p-3"><Label>Mobile Wallet</Label><Switch checked={form.payWalletEnabled} onCheckedChange={(v) => set({ payWalletEnabled: v })} /></div>
+            <div className="flex items-center justify-between rounded-lg border p-3"><Label>Bank Transfer</Label><Switch checked={form.payBankEnabled} onCheckedChange={(v) => set({ payBankEnabled: v })} /></div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><Label>Wallet Numbers</Label><Textarea value={form.walletNumbers} onChange={(e) => set({ walletNumbers: e.target.value })} rows={3} className="mt-1" placeholder="Vodafone Cash: 01xxxxxxxxx" /></div>
+            <div><Label>Bank Transfer Details</Label><Textarea value={form.bankDetails} onChange={(e) => set({ bankDetails: e.target.value })} rows={3} className="mt-1" placeholder="Bank name, account name, IBAN" /></div>
           </div>
         </TabsContent>
       </Tabs>

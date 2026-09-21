@@ -195,6 +195,9 @@ export function orderFromRow(r: OrderRowWithItems): Order {
     couponCode: r.coupon_code ?? undefined,
     total: num(r.total),
     status: r.status,
+    paymentMethod: r.payment_method,
+    paymentStatus: r.payment_status,
+    paymentReference: r.payment_reference ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -227,6 +230,12 @@ export function settingsFromRow(r: Tables<"settings">): Settings {
     currency: r.currency ?? "EGP",
     seoTitle: r.seo_title ?? "",
     seoDescription: r.seo_description ?? "",
+    payCodEnabled: r.pay_cod_enabled ?? true,
+    payCardEnabled: !!r.pay_card_enabled,
+    payWalletEnabled: !!r.pay_wallet_enabled,
+    payBankEnabled: !!r.pay_bank_enabled,
+    walletNumbers: r.wallet_numbers ?? "",
+    bankDetails: r.bank_details ?? "",
   };
 }
 
@@ -257,6 +266,12 @@ export function settingsToRow(s: Partial<Settings>): Record<string, unknown> {
     currency: "currency",
     seoTitle: "seo_title",
     seoDescription: "seo_description",
+    payCodEnabled: "pay_cod_enabled",
+    payCardEnabled: "pay_card_enabled",
+    payWalletEnabled: "pay_wallet_enabled",
+    payBankEnabled: "pay_bank_enabled",
+    walletNumbers: "wallet_numbers",
+    bankDetails: "bank_details",
   };
   const row: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(s)) {

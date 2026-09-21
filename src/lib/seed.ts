@@ -36,6 +36,12 @@ export const defaultSettings: Settings = {
   seoTitle: "Nova Store — Premium Online Shopping in Egypt",
   seoDescription:
     "Shop the latest electronics, fashion, home essentials and more at Nova Store. Cash on delivery across Egypt with fast shipping.",
+  payCodEnabled: true,
+  payCardEnabled: false,
+  payWalletEnabled: false,
+  payBankEnabled: false,
+  walletNumbers: "",
+  bankDetails: "",
 };
 
 export const seedCategories: Category[] = [

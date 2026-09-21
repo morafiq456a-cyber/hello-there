@@ -94,6 +94,9 @@ export type Order = {
   couponCode?: string;
   total: number;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  paymentReference?: string;
   createdAt: string;
 };
 
@@ -152,4 +155,29 @@ export type Settings = {
   currency: string;
   seoTitle: string;
   seoDescription: string;
+  payCodEnabled: boolean;
+  payCardEnabled: boolean;
+  payWalletEnabled: boolean;
+  payBankEnabled: boolean;
+  walletNumbers: string;
+  bankDetails: string;
+};
+
+export type PaymentMethod = "cod" | "card" | "wallet" | "bank";
+export type PaymentStatus = "unpaid" | "pending" | "paid" | "failed" | "refunded";
+
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string; hint: string }[] = [
+  { value: "cod", label: "Cash on Delivery", hint: "Pay in cash when your order arrives." },
+  { value: "card", label: "Credit / Debit Card", hint: "Pay online with Visa or Mastercard." },
+  { value: "wallet", label: "Mobile Wallet", hint: "Transfer to our wallet number and enter the transaction reference." },
+  { value: "bank", label: "Bank Transfer", hint: "Transfer to our bank account and enter the transfer reference." },
+];
+
+export type Profile = {
+  id: string;
+  fullName: string;
+  phone: string;
+  governorate: string;
+  city: string;
+  address: string;
 };
