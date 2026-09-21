@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Banknote, Loader2, ShoppingBag, Tag } from "lucide-react";
+import { Banknote, CreditCard, Landmark, Loader2, ShoppingBag, Smartphone, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import { StoreLayout, PageHeader } from "@/components/storefront/StoreLayout";
@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { EGYPT_GOVERNORATES } from "@/lib/seed";
+import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/types";
+
+const METHOD_ICONS: Record<PaymentMethod, typeof Banknote> = {
+  cod: Banknote,
+  card: CreditCard,
+  wallet: Smartphone,
+  bank: Landmark,
+};
 
 const schema = z.object({
   fullName: z.string().trim().min(3, "Please enter your full name").max(80),
@@ -44,6 +52,23 @@ function CheckoutPage() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
   const [applying, setApplying] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("cod");
+  const [reference, setReference] = useState("");
+
+  const enabledMethods = useMemo(() => {
+    const flags: Record<PaymentMethod, boolean> = {
+      cod: settings.payCodEnabled,
+      card: settings.payCardEnabled,
+      wallet: settings.payWalletEnabled,
+      bank: settings.payBankEnabled,
+    };
+    const list = PAYMENT_METHODS.filter((m) => flags[m.value]);
+    return list.length > 0 ? list : PAYMENT_METHODS.filter((m) => m.value === "cod");
+  }, [settings]);
+
+  useEffect(() => {
+    if (!enabledMethods.some((m) => m.value === method)) setMethod(enabledMethods[0]!.value);
+  }, [enabledMethods, method]);
 
   const {
     register,
@@ -89,6 +114,8 @@ function CheckoutPage() {
         customer: values,
         items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
         couponCode: applied?.code ?? null,
+        paymentMethod: method,
+        paymentReference: reference.trim() || null,
       });
       toast.success("Order placed successfully!");
       navigate({ to: "/order-success", search: { order: order.number } });
@@ -156,14 +183,60 @@ function CheckoutPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border-2 border-brand bg-brand/5 p-4">
-            <div className="flex items-center gap-3">
-              <Banknote className="text-brand" />
-              <div>
-                <p className="font-semibold">Cash on Delivery</p>
-                <p className="text-sm text-muted-foreground">Pay in cash when your order arrives.</p>
-              </div>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">Payment Method</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {enabledMethods.map((m) => {
+                const Icon = METHOD_ICONS[m.value];
+                const active = method === m.value;
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setMethod(m.value)}
+                    aria-pressed={active}
+                    className={`flex items-start gap-3 rounded-xl border-2 p-4 text-start transition ${active ? "border-brand bg-brand/5" : "border-border hover:border-brand/40"}`}
+                  >
+                    <Icon className={active ? "text-brand" : "text-muted-foreground"} size={20} />
+                    <span>
+                      <span className="block font-semibold">{m.label}</span>
+                      <span className="block text-sm text-muted-foreground">{m.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+
+            {method === "wallet" && settings.walletNumbers && (
+              <div className="rounded-xl border bg-muted/40 p-4 text-sm">
+                <p className="font-semibold">Send the total to:</p>
+                <p className="whitespace-pre-line text-muted-foreground">{settings.walletNumbers}</p>
+              </div>
+            )}
+            {method === "bank" && settings.bankDetails && (
+              <div className="rounded-xl border bg-muted/40 p-4 text-sm">
+                <p className="font-semibold">Bank account details:</p>
+                <p className="whitespace-pre-line text-muted-foreground">{settings.bankDetails}</p>
+              </div>
+            )}
+            {(method === "wallet" || method === "bank") && (
+              <div>
+                <Label htmlFor="reference">Transaction / Transfer Reference</Label>
+                <Input
+                  id="reference"
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                  className="mt-1"
+                  placeholder="Enter the reference number after transferring"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">We will confirm your payment before shipping.</p>
+              </div>
+            )}
+            {method === "card" && (
+              <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground">
+                You will receive a secure payment link right after placing the order.
+              </p>
+            )}
           </div>
         </div>
 
