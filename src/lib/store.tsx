@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import * as api from "./api";
 import {
@@ -58,6 +58,11 @@ type StoreContextValue = {
   recentlyViewed: string[];
   lastOrder: Order | null;
   admin: boolean;
+  user: User | null;
+  // customer auth
+  signUp: (input: { email: string; password: string; fullName: string; phone: string }) => Promise<{ ok: boolean; needsConfirm: boolean; message: string }>;
+  signIn: (email: string, password: string) => Promise<{ ok: boolean; message: string }>;
+  signOut: () => Promise<void>;
   // cart
   addToCart: (productId: string, qty?: number) => void;
   removeFromCart: (productId: string) => void;
@@ -102,6 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ---------- Auth ----------
   const [, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [admin, setAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -124,11 +130,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
       setSession(data.session);
+      setUser(data.session?.user ?? null);
       await checkRole(data.session?.user?.id);
       setAuthChecked(true);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      setUser(session?.user ?? null);
       // Only react to real identity transitions. Ignore TOKEN_REFRESHED
       // (~hourly + on tab focus) and INITIAL_SESSION (every mount) to avoid
       // thrashing the query cache with unnecessary refetches.
@@ -302,6 +310,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // ---------- Customer auth ----------
+  const signUp = useCallback(
+    async (input: { email: string; password: string; fullName: string; phone: string }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email: input.email.trim(),
+        password: input.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/account`,
+          data: { full_name: input.fullName.trim(), phone: input.phone.trim() },
+        },
+      });
+      if (error) return { ok: false, needsConfirm: false, message: error.message };
+      if (!data.session) {
+        return { ok: true, needsConfirm: true, message: "Check your email to confirm your account." };
+      }
+      queryClient.invalidateQueries();
+      return { ok: true, needsConfirm: false, message: "Welcome!" };
+    },
+    [queryClient],
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) return { ok: false, message: error.message };
+      queryClient.invalidateQueries();
+      return { ok: true, message: "Signed in" };
+    },
+    [queryClient],
+  );
+
+  const signOut = useCallback(async () => {
+    await queryClient.cancelQueries();
+    await supabase.auth.signOut();
+    setAdmin(false);
+    queryClient.removeQueries({ queryKey: ["my-orders"] });
+    queryClient.removeQueries({ queryKey: ["profile"] });
+  }, [queryClient]);
+
   // ---------- Admin auth ----------
   const login = useCallback(
     async (email: string, password: string) => {
@@ -352,6 +399,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     recentlyViewed: local.recentlyViewed,
     lastOrder: local.lastOrder,
     admin,
+    user,
+    signUp,
+    signIn,
+    signOut,
     addToCart,
     removeFromCart,
     setCartQty,
