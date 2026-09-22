@@ -283,6 +283,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await invalidate("orders");
     await invalidate("customers");
   }, [invalidate]);
+  const updatePaymentStatus = useCallback(async (id: string, paymentStatus: PaymentStatus) => {
+    await api.updatePaymentStatus(id, paymentStatus);
+    await invalidate("orders");
+  }, [invalidate]);
   const deleteOrder = useCallback(async (id: string) => {
     await api.deleteOrder(id);
     await invalidate("orders");

@@ -159,6 +159,11 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   if (error) throw new Error(error.message);
 }
 
+export async function updatePaymentStatus(id: string, paymentStatus: PaymentStatus): Promise<void> {
+  const { error } = await supabase.from("orders").update({ payment_status: paymentStatus }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteOrder(id: string): Promise<void> {
   const { error } = await supabase.from("orders").delete().eq("id", id);
   if (error) throw new Error(error.message);
