@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Heart, Menu, ShoppingCart, Store, Truck } from "lucide-react";
+import { Heart, Menu, ShoppingCart, Store, Truck, User } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ const NAV = [
 ];
 
 export function Header() {
-  const { cartCount, wishlist, settings, categories } = useStore();
+  const { cartCount, wishlist, settings, categories, user } = useStore();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -62,6 +62,13 @@ export function Header() {
                   {n.label}
                 </Link>
               ))}
+              <Link
+                to={user ? "/account" : "/account/login"}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+              >
+                {user ? "My Account" : "Sign In"}
+              </Link>
             </nav>
             <div className="mt-4 border-t pt-4">
               <p className="px-3 pb-1 text-xs font-semibold uppercase text-muted-foreground">Categories</p>
@@ -114,6 +121,9 @@ export function Header() {
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Track order">
             <Link to="/track-order"><Truck size={20} /></Link>
+          </Button>
+          <Button asChild variant="ghost" size="icon" aria-label={user ? "My account" : "Sign in"}>
+            <Link to={user ? "/account" : "/account/login"}><User size={20} /></Link>
           </Button>
           <Button asChild variant="ghost" size="icon" className="relative" aria-label="Wishlist">
             <Link to="/wishlist">
