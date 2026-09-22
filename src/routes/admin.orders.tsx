@@ -19,7 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
-import { ORDER_STATUSES, type Order, type OrderStatus } from "@/lib/types";
+import {
+  ORDER_STATUSES,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+  type Order,
+  type OrderStatus,
+  type PaymentStatus,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/orders")({
