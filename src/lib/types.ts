@@ -173,6 +173,8 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string; hint: strin
   { value: "bank", label: "Bank Transfer", hint: "Transfer to our bank account and enter the transfer reference." },
 ];
 
+export const PAYMENT_STATUSES: PaymentStatus[] = ["unpaid", "pending", "paid", "failed", "refunded"];
+
 export type Profile = {
   id: string;
   fullName: string;
