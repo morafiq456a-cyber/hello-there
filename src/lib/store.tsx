@@ -430,6 +430,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteBanner,
     placeOrder,
     updateOrderStatus,
+    updatePaymentStatus,
     deleteOrder,
     trackOrder,
     updateSettings,
