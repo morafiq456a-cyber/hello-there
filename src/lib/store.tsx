@@ -28,6 +28,7 @@ import type {
   Customer,
   Order,
   OrderStatus,
+  PaymentStatus,
   Product,
   Settings,
 } from "./types";
@@ -91,6 +92,7 @@ type StoreContextValue = {
   // orders
   placeOrder: (input: PlaceOrderInput) => Promise<Order>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  updatePaymentStatus: (id: string, paymentStatus: PaymentStatus) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   trackOrder: (number: string, phone: string) => Promise<Order | null>;
   // settings
@@ -283,6 +285,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await invalidate("orders");
     await invalidate("customers");
   }, [invalidate]);
+  const updatePaymentStatus = useCallback(async (id: string, paymentStatus: PaymentStatus) => {
+    await api.updatePaymentStatus(id, paymentStatus);
+    await invalidate("orders");
+  }, [invalidate]);
   const deleteOrder = useCallback(async (id: string) => {
     await api.deleteOrder(id);
     await invalidate("orders");
@@ -424,6 +430,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteBanner,
     placeOrder,
     updateOrderStatus,
+    updatePaymentStatus,
     deleteOrder,
     trackOrder,
     updateSettings,

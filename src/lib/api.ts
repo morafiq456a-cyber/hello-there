@@ -6,6 +6,7 @@ import type {
   Customer,
   Order,
   OrderStatus,
+  PaymentStatus,
   Product,
   Settings,
 } from "./types";
@@ -156,6 +157,11 @@ export async function deleteBanner(id: string): Promise<void> {
 // ================= ORDERS (admin) =================
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
   const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePaymentStatus(id: string, paymentStatus: PaymentStatus): Promise<void> {
+  const { error } = await supabase.from("orders").update({ payment_status: paymentStatus }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

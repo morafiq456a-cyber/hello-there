@@ -19,7 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
-import { ORDER_STATUSES, type Order, type OrderStatus } from "@/lib/types";
+import {
+  ORDER_STATUSES,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+  type Order,
+  type OrderStatus,
+  type PaymentStatus,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/orders")({
@@ -36,8 +43,16 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   Cancelled: "bg-red-100 text-red-700",
 };
 
+const PAYMENT_COLORS: Record<PaymentStatus, string> = {
+  unpaid: "bg-slate-100 text-slate-700",
+  pending: "bg-amber-100 text-amber-700",
+  paid: "bg-green-100 text-green-700",
+  failed: "bg-red-100 text-red-700",
+  refunded: "bg-purple-100 text-purple-700",
+};
+
 function AdminOrders() {
-  const { orders, settings, updateOrderStatus, deleteOrder } = useStore();
+  const { orders, settings, updateOrderStatus, updatePaymentStatus, deleteOrder } = useStore();
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<Order | null>(null);
 
@@ -59,7 +74,8 @@ function AdminOrders() {
         ${o.discount ? `<p>Discount: -${formatCurrency(o.discount, settings.currency)}</p>` : ""}
         <p>Shipping: ${o.shipping ? formatCurrency(o.shipping, settings.currency) : "Free"}</p>
         <h2>Total: ${formatCurrency(o.total, settings.currency)}</h2>
-        <p><b>Payment: Cash on Delivery</b></p>
+        <p><b>Payment: ${PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label ?? o.paymentMethod} (${o.paymentStatus})</b></p>
+        ${o.paymentReference ? `<p>Reference: ${o.paymentReference}</p>` : ""}
       </div>
       <p style="text-align:center;margin-top:24px;color:#888">Thank you for shopping with ${settings.storeName}!</p>
     </body></html>`;
@@ -89,6 +105,7 @@ function AdminOrders() {
               <th className="p-3 font-medium">Date</th>
               <th className="p-3 font-medium">Total</th>
               <th className="p-3 font-medium">Status</th>
+              <th className="p-3 font-medium">Payment</th>
               <th className="p-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
@@ -109,6 +126,14 @@ function AdminOrders() {
                   </Select>
                 </td>
                 <td className="p-3">
+                  <p className="text-xs font-medium">{PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label ?? o.paymentMethod}</p>
+                  <Select value={o.paymentStatus} onValueChange={(v) => { updatePaymentStatus(o.id, v as PaymentStatus); toast.success(`Payment: ${v}`); }}>
+                    <SelectTrigger className={cn("mt-1 h-7 w-32 border-0 text-xs font-semibold capitalize", PAYMENT_COLORS[o.paymentStatus])}><SelectValue /></SelectTrigger>
+                    <SelectContent>{PAYMENT_STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {o.paymentReference && <p className="mt-1 text-[11px] text-muted-foreground">Ref: {o.paymentReference}</p>}
+                </td>
+                <td className="p-3">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setView(o)}><Eye size={15} /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => printInvoice(o)}><Printer size={15} /></Button>
@@ -119,7 +144,7 @@ function AdminOrders() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-muted-foreground">No orders found.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-muted-foreground">No orders found.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -150,6 +175,15 @@ function AdminOrders() {
                 {view.discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(view.discount, settings.currency)}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{view.shipping ? formatCurrency(view.shipping, settings.currency) : "Free"}</span></div>
                 <div className="flex justify-between border-t pt-1 font-bold"><span>Total</span><span className="text-brand">{formatCurrency(view.total, settings.currency)}</span></div>
+                <div className="flex justify-between border-t pt-1">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span className="font-medium capitalize">
+                    {PAYMENT_METHODS.find((m) => m.value === view.paymentMethod)?.label ?? view.paymentMethod} · {view.paymentStatus}
+                  </span>
+                </div>
+                {view.paymentReference && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span>{view.paymentReference}</span></div>
+                )}
               </div>
               <Button className="w-full gap-2" onClick={() => printInvoice(view)}><Printer size={16} /> Print Invoice</Button>
             </div>
