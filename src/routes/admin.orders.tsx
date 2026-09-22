@@ -74,7 +74,8 @@ function AdminOrders() {
         ${o.discount ? `<p>Discount: -${formatCurrency(o.discount, settings.currency)}</p>` : ""}
         <p>Shipping: ${o.shipping ? formatCurrency(o.shipping, settings.currency) : "Free"}</p>
         <h2>Total: ${formatCurrency(o.total, settings.currency)}</h2>
-        <p><b>Payment: Cash on Delivery</b></p>
+        <p><b>Payment: ${PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label ?? o.paymentMethod} (${o.paymentStatus})</b></p>
+        ${o.paymentReference ? `<p>Reference: ${o.paymentReference}</p>` : ""}
       </div>
       <p style="text-align:center;margin-top:24px;color:#888">Thank you for shopping with ${settings.storeName}!</p>
     </body></html>`;
@@ -143,7 +144,7 @@ function AdminOrders() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-muted-foreground">No orders found.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-muted-foreground">No orders found.</td></tr>}
           </tbody>
         </table>
       </div>
