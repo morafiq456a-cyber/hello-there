@@ -6,6 +6,7 @@ import type {
   Customer,
   Order,
   OrderStatus,
+  PaymentStatus,
   Product,
   Settings,
 } from "./types";

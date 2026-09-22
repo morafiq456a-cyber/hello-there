@@ -28,6 +28,7 @@ import type {
   Customer,
   Order,
   OrderStatus,
+  PaymentStatus,
   Product,
   Settings,
 } from "./types";
@@ -91,6 +92,7 @@ type StoreContextValue = {
   // orders
   placeOrder: (input: PlaceOrderInput) => Promise<Order>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  updatePaymentStatus: (id: string, paymentStatus: PaymentStatus) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   trackOrder: (number: string, phone: string) => Promise<Order | null>;
   // settings
