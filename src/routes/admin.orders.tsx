@@ -43,8 +43,16 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   Cancelled: "bg-red-100 text-red-700",
 };
 
+const PAYMENT_COLORS: Record<PaymentStatus, string> = {
+  unpaid: "bg-slate-100 text-slate-700",
+  pending: "bg-amber-100 text-amber-700",
+  paid: "bg-green-100 text-green-700",
+  failed: "bg-red-100 text-red-700",
+  refunded: "bg-purple-100 text-purple-700",
+};
+
 function AdminOrders() {
-  const { orders, settings, updateOrderStatus, deleteOrder } = useStore();
+  const { orders, settings, updateOrderStatus, updatePaymentStatus, deleteOrder } = useStore();
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<Order | null>(null);
 
