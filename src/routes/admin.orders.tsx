@@ -104,6 +104,7 @@ function AdminOrders() {
               <th className="p-3 font-medium">Date</th>
               <th className="p-3 font-medium">Total</th>
               <th className="p-3 font-medium">Status</th>
+              <th className="p-3 font-medium">Payment</th>
               <th className="p-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
@@ -122,6 +123,14 @@ function AdminOrders() {
                     <SelectTrigger className={cn("h-8 w-40 border-0 text-xs font-semibold", STATUS_COLORS[o.status])}><SelectValue /></SelectTrigger>
                     <SelectContent>{ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
+                </td>
+                <td className="p-3">
+                  <p className="text-xs font-medium">{PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label ?? o.paymentMethod}</p>
+                  <Select value={o.paymentStatus} onValueChange={(v) => { updatePaymentStatus(o.id, v as PaymentStatus); toast.success(`Payment: ${v}`); }}>
+                    <SelectTrigger className={cn("mt-1 h-7 w-32 border-0 text-xs font-semibold capitalize", PAYMENT_COLORS[o.paymentStatus])}><SelectValue /></SelectTrigger>
+                    <SelectContent>{PAYMENT_STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {o.paymentReference && <p className="mt-1 text-[11px] text-muted-foreground">Ref: {o.paymentReference}</p>}
                 </td>
                 <td className="p-3">
                   <div className="flex justify-end gap-1">
