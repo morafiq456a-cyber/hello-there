@@ -175,6 +175,15 @@ function AdminOrders() {
                 {view.discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(view.discount, settings.currency)}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{view.shipping ? formatCurrency(view.shipping, settings.currency) : "Free"}</span></div>
                 <div className="flex justify-between border-t pt-1 font-bold"><span>Total</span><span className="text-brand">{formatCurrency(view.total, settings.currency)}</span></div>
+                <div className="flex justify-between border-t pt-1">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span className="font-medium capitalize">
+                    {PAYMENT_METHODS.find((m) => m.value === view.paymentMethod)?.label ?? view.paymentMethod} · {view.paymentStatus}
+                  </span>
+                </div>
+                {view.paymentReference && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span>{view.paymentReference}</span></div>
+                )}
               </div>
               <Button className="w-full gap-2" onClick={() => printInvoice(view)}><Printer size={16} /> Print Invoice</Button>
             </div>
