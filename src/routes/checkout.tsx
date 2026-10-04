@@ -6,6 +6,9 @@ import { z } from "zod";
 import { Banknote, CreditCard, Landmark, Loader2, ShoppingBag, Smartphone, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getProfileFn } from "@/lib/account.functions";
 import { StoreLayout, PageHeader } from "@/components/storefront/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +51,10 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, products, settings, validateCoupon, placeOrder } = useStore();
+  const { cart, products, settings, validateCoupon, placeOrder, user } = useStore();
+  const getProfile = useServerFn(getProfileFn);
+  const profileQ = useQuery({ queryKey: ["profile"], queryFn: () => getProfile(), enabled: !!user });
+  const [autofilled, setAutofilled] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
   const [applying, setApplying] = useState(false);
@@ -77,6 +83,18 @@ function CheckoutPage() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { governorate: "" } });
+
+  useEffect(() => {
+    const p = profileQ.data;
+    if (!p || autofilled) return;
+    const opts = { shouldValidate: false } as const;
+    if (p.fullName) setValue("fullName", p.fullName, opts);
+    if (p.phone) setValue("phone", p.phone, opts);
+    if (p.governorate && (EGYPT_GOVERNORATES as readonly string[]).includes(p.governorate)) setValue("governorate", p.governorate, opts);
+    if (p.city) setValue("city", p.city, opts);
+    if (p.address) setValue("address", p.address, opts);
+    setAutofilled(true);
+  }, [profileQ.data, autofilled, setValue]);
 
   const lines = useMemo(
     () => cart.map((c) => ({ ...c, product: products.find((p) => p.id === c.productId)! })).filter((l) => l.product),
@@ -142,6 +160,11 @@ function CheckoutPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="mx-auto grid max-w-7xl gap-6 px-4 py-8 lg:grid-cols-[1fr_360px]">
         <div className="space-y-5 rounded-2xl border bg-card p-6">
           <h3 className="text-lg font-semibold">Delivery Details</h3>
+          {autofilled && (
+            <p className="rounded-lg bg-brand/10 px-3 py-2 text-sm text-brand">
+              تم ملء بيانات الشحن تلقائياً من حسابك — يمكنك تعديلها لهذا الطلب.
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="fullName">Full Name *</Label>

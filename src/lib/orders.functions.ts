@@ -222,56 +222,25 @@ export const validateCouponFn = createServerFn({ method: "POST" })
     return { ok: true, message: `Coupon applied: -${Math.round(discount)}`, discount, code: coupon.code };
   });
 
-// ================= TRACK ORDER =================
+// ================= TRACK ORDERS BY PHONE =================
 const trackSchema = z.object({
-  number: z.string().trim().min(1).max(40),
-  phone: z.string().trim().min(3).max(20),
+  phone: z.string().trim().min(9).max(20),
 });
 
 export const trackOrderFn = createServerFn({ method: "POST" })
   .inputValidator((data: z.infer<typeof trackSchema>) => trackSchema.parse(data))
-  .handler(async ({ data }): Promise<Order | null> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  .handler(async ({ data }): Promise<Order[]> => {
     const digits = (s: string) => s.replace(/\D/g, "");
+    const target = digits(data.phone).slice(-10);
+    if (target.length < 9) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { orderFromRow } = await import("./mappers");
     const { data: rows, error } = await supabaseAdmin
       .from("orders")
       .select("*, order_items(*)")
-      .ilike("number", data.number.trim());
+      .ilike("phone", `%${target.slice(-9)}%`)
+      .order("created_at", { ascending: false })
+      .limit(50);
     if (error) throw new Error(error.message);
-    const target = digits(data.phone);
-    const match = (rows ?? []).find((r) => {
-      const rp = digits(r.phone);
-      return rp === target || rp.endsWith(target.slice(-9)) || target.endsWith(rp.slice(-9));
-    });
-    if (!match) return null;
-    return {
-      id: match.id,
-      number: match.number,
-      customer: {
-        fullName: match.full_name,
-        phone: match.phone,
-        governorate: match.governorate,
-        city: match.city ?? "",
-        address: match.address,
-        landmark: match.landmark ?? undefined,
-        notes: match.notes ?? undefined,
-      },
-      items: (match.order_items ?? []).map((oi) => ({
-        productId: oi.product_id ?? "",
-        name: oi.name,
-        image: oi.image ?? "",
-        price: Number(oi.price),
-        quantity: oi.quantity ?? 1,
-      })),
-      subtotal: Number(match.subtotal),
-      shipping: Number(match.shipping),
-      discount: Number(match.discount),
-      couponCode: match.coupon_code ?? undefined,
-      total: Number(match.total),
-      status: match.status,
-      paymentMethod: match.payment_method,
-      paymentStatus: match.payment_status,
-      paymentReference: match.payment_reference ?? undefined,
-      createdAt: match.created_at,
-    };
+    return (rows ?? []).filter((r) => digits(r.phone).endsWith(target)).map(orderFromRow);
   });

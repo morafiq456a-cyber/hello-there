@@ -168,7 +168,7 @@ function AccountPage() {
                     <div className="text-end">
                       <p className="font-bold text-brand">{formatCurrency(o.total, settings.currency)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {o.status} · {PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label} ({o.paymentStatus})
+                        <Link to="/track-order" className="me-2 font-semibold text-brand hover:underline">تتبع الشحنة</Link>{o.status} · {PAYMENT_METHODS.find((m) => m.value === o.paymentMethod)?.label} ({o.paymentStatus})
                       </p>
                     </div>
                   </div>
