@@ -203,9 +203,9 @@ export function orderFromRow(r: OrderRowWithItems): Order {
 }
 
 // ---------- Settings ----------
-export function settingsFromRow(r: Tables<"settings">): Settings {
+export function settingsFromRow(r: Tables<"settings"> | Tables<"storefront_settings">): Settings {
   return {
-    storeName: r.store_name,
+    storeName: r.store_name ?? "Nova Store",
     logo: r.logo ?? "",
     banner: r.banner ?? "",
     favicon: r.favicon ?? "/favicon.ico",

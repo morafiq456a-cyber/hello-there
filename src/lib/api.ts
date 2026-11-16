@@ -48,7 +48,7 @@ export async function fetchBanners(): Promise<Banner[]> {
 }
 
 export async function fetchSettings(): Promise<Settings> {
-  const { data, error } = await supabase.from("settings").select("*").eq("id", "default").maybeSingle();
+  const { data, error } = await supabase.from("storefront_settings").select("*").maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Settings not found");
   return settingsFromRow(data);
