@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -534,7 +534,108 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      storefront_settings: {
+        Row: {
+          address: string | null
+          background_color: string | null
+          bank_details: string | null
+          banner: string | null
+          business_hours: string | null
+          button_color: string | null
+          currency: string | null
+          dark_mode: boolean | null
+          email: string | null
+          facebook: string | null
+          favicon: string | null
+          font: string | null
+          free_shipping_threshold: number | null
+          google_map: string | null
+          instagram: string | null
+          logo: string | null
+          pay_bank_enabled: boolean | null
+          pay_card_enabled: boolean | null
+          pay_cod_enabled: boolean | null
+          pay_wallet_enabled: boolean | null
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          seo_description: string | null
+          seo_title: string | null
+          shipping_fee: number | null
+          store_name: string | null
+          text_color: string | null
+          tiktok: string | null
+          wallet_numbers: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          background_color?: string | null
+          bank_details?: string | null
+          banner?: string | null
+          business_hours?: string | null
+          button_color?: string | null
+          currency?: string | null
+          dark_mode?: boolean | null
+          email?: string | null
+          facebook?: string | null
+          favicon?: string | null
+          font?: string | null
+          free_shipping_threshold?: number | null
+          google_map?: string | null
+          instagram?: string | null
+          logo?: string | null
+          pay_bank_enabled?: boolean | null
+          pay_card_enabled?: boolean | null
+          pay_cod_enabled?: boolean | null
+          pay_wallet_enabled?: boolean | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          shipping_fee?: number | null
+          store_name?: string | null
+          text_color?: string | null
+          tiktok?: string | null
+          wallet_numbers?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          background_color?: string | null
+          bank_details?: string | null
+          banner?: string | null
+          business_hours?: string | null
+          button_color?: string | null
+          currency?: string | null
+          dark_mode?: boolean | null
+          email?: string | null
+          facebook?: string | null
+          favicon?: string | null
+          font?: string | null
+          free_shipping_threshold?: number | null
+          google_map?: string | null
+          instagram?: string | null
+          logo?: string | null
+          pay_bank_enabled?: boolean | null
+          pay_card_enabled?: boolean | null
+          pay_cod_enabled?: boolean | null
+          pay_wallet_enabled?: boolean | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          shipping_fee?: number | null
+          store_name?: string | null
+          text_color?: string | null
+          tiktok?: string | null
+          wallet_numbers?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       decrement_stock: {

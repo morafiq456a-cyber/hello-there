@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794836508108,
+      "tag": "0000_scope_public_settings_read",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794836557559,
+      "tag": "0001_allowlist_storefront_settings",
+      "breakpoints": true
+    }
+  ]
+}
